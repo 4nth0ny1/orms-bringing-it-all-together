@@ -1,7 +1,7 @@
 class Dog 
     attr_accessor :id, :name, :breed
 
-    def initialize(id:nil, name:, breed:)
+    def initialize(id: id=nil, name: name, breed: breed)
         @id = id
         @name = name 
         @breed = breed 
@@ -31,6 +31,7 @@ class Dog
     SQL
 
     DB[:conn].execute(sql, self.name, self.breed)
+    @id = DB[:conn].execute("SELECT last_insert_rowid() FROM dogs")[0][0]
     self
   end 
 
@@ -56,7 +57,6 @@ class Dog
       LIMIT 1
     SQL
     
-
     data = DB[:conn].execute(sql, id)
     data.map do |row|
       self.new_from_db(row)
@@ -68,19 +68,45 @@ class Dog
       SELECT * 
       FROM dogs
       WHERE name = ? AND breed = ?
+      LIMIT 1
     SQL
-    
     dog = DB[:conn].execute(sql, name, breed)
-   
     if !dog.empty?
-      dog_data = dog[0]
-      dog = Dog.new(dog_data[0], dog_data[1], dog_data[2])
+      data = dog[0]
+      dog = Dog.new(id: data[0], name: data[1], breed: data[2])
     else
       dog = self.create(name: name, breed: breed) 
-    end
-    dog
-   
+    end   
+    dog 
   end
 
+  def self.find_by_name(name)
+    sql = <<-SQL
+      SELECT * 
+      FROM dogs 
+      WHERE name = ?
+      LIMIT 1
+    SQL
 
+    data = DB[:conn].execute(sql, name)
+
+    data.map do |row|
+      self.new_from_db(row)
+    end.first
+  end
+
+  def update(id: id, name: name, breed: breed)
+    
+    sql = <<-SQL
+      UPDATE dogs 
+      SET name = ?, 
+      breed = ?
+      WHERE id = ?
+    SQL
+
+    x = DB[:conn].execute(sql, self.name, self.breed, self.id)
+  end 
+
+  
+  
 end 
